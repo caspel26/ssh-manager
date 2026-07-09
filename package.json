@@ -17,6 +17,7 @@
     "directories": {
       "output": "release"
     },
+    "publish": null,
     "files": [
       "dist/**/*",
       "app/**/*",
