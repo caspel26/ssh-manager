@@ -106,19 +106,6 @@ All themes are applied live — no restart required.
 
 ---
 
-## Releasing a new version
-
-Tag a commit and push the tag. GitHub Actions builds both platforms and attaches the artifacts to a GitHub Release automatically:
-
-```bash
-git tag v1.1.0
-git push origin v1.1.0
-```
-
-The workflow (`.github/workflows/release.yml`) runs on `macos-latest` and `windows-latest` in parallel.
-
----
-
 ## Tech stack
 
 - [Electron](https://electronjs.org) 42 — app shell
