@@ -3,6 +3,8 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  platform: process.platform,
+
   listHosts:      ()                   => ipcRenderer.invoke('ssh:list'),
   getHostConfig:  (hostName)           => ipcRenderer.invoke('ssh:getConfig', hostName),
   saveHostConfig: (filePath, content)  => ipcRenderer.invoke('ssh:saveConfig', { filePath, content }),

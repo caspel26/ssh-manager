@@ -6,11 +6,10 @@ dist/
 dist-electron/
 release/
 
-# Generated icons (source SVG is kept, generated files are not)
+# Generated icon intermediates (icon.icns/icon.ico are committed — CI can't
+# rasterize SVG reliably, so the final binaries are checked in instead)
 build/icon_1024.png
 build/icon.iconset/
-build/icon.icns
-build/icon.ico
 
 # macOS
 .DS_Store

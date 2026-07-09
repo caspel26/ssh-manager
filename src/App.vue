@@ -29,6 +29,7 @@
             <circle cx="7" cy="11.5" r="1.7" stroke="currentColor" stroke-width="1.4"/>
           </svg>
         </button>
+        <div v-if="!isMac" class="tl-win-space"></div>
       </div>
     </div>
 
@@ -65,8 +66,10 @@ import { useHosts } from './composables/useHosts.js'
 import { useSessions } from './composables/useSessions.js'
 import { useModals } from './composables/useModals.js'
 import { useSettings } from './composables/useSettings.js'
+import { useHostPrefs } from './composables/useHostPrefs.js'
 
 const { hosts, load, reload } = useHosts()
+const { load: loadHostPrefs } = useHostPrefs()
 const { openSession, sessions } = useSessions()
 const { addModalOpen } = useModals()
 const { settings, load: loadSettings, toggleTheme } = useSettings()
@@ -75,8 +78,9 @@ const version = __APP_VERSION__
 
 const activeCount = computed(() => sessions.value.length)
 const isDark = computed(() => (settings.value.appearance.theme ?? 'dark') !== 'light')
+const isMac = window.electronAPI?.platform === 'darwin'
 
-onMounted(() => { load(); loadSettings() })
+onMounted(() => { load(); loadSettings(); loadHostPrefs() })
 
 function connect(host) { openSession(host) }
 
@@ -134,6 +138,9 @@ function stopDrag() { dragging.value = false }
 }
 
 .tl-space { width: 74px; flex-shrink: 0; }
+
+/* Reserves room for Windows/Linux's overlaid min/max/close buttons (titleBarOverlay) */
+.tl-win-space { width: 138px; flex-shrink: 0; }
 
 .tl-right {
   margin-left: auto;

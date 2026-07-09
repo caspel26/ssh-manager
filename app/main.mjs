@@ -2,7 +2,7 @@
 // loader handles 'import from electron' as a builtin.
 // In dev mode (node_modules/electron exists), we get the npm package path string.
 // The app is packaged via electron-builder which excludes node_modules/electron.
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'fs'
 import { spawn, execSync } from 'child_process'
@@ -25,6 +25,7 @@ function resolveAuthSock() {
 const SSH_AUTH_SOCK = resolveAuthSock()
 
 const isDev = process.env.NODE_ENV === 'development'
+const isMac = process.platform === 'darwin'
 let mainWindow
 
 app.commandLine.appendSwitch('no-sandbox')
@@ -40,7 +41,13 @@ function createWindow() {
     height: 860,
     minWidth: 900,
     minHeight: 600,
-    titleBarStyle: 'hiddenInset',
+    // 'hiddenInset' is macOS-only and silently ignored elsewhere, which used to
+    // leave Windows with its full native titlebar *and* the default menu bar
+    // stacked above our custom in-app header. 'hidden' + titleBarOverlay gives
+    // Windows/Linux native min/max/close controls without that extra chrome.
+    ...(isMac
+      ? { titleBarStyle: 'hiddenInset' }
+      : { titleBarStyle: 'hidden', titleBarOverlay: { color: '#12121f', symbolColor: '#c2c2da', height: 46 } }),
     backgroundColor: '#0d0d18',
     webPreferences: {
       preload: join(ROOT, 'app/preload.cjs'),
@@ -56,6 +63,11 @@ function createWindow() {
     mainWindow.loadFile(join(ROOT, 'dist/index.html'))
   }
 }
+
+// The default File/Edit/View/Window menu renders as a visible row inside the
+// window on Windows/Linux (invisible on macOS, which draws it in the system
+// menu bar instead) — drop it there so our custom header is the only chrome.
+if (!isMac) Menu.setApplicationMenu(null)
 
 app.whenReady().then(createWindow)
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })

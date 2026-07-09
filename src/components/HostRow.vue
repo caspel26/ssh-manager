@@ -3,9 +3,23 @@
 
     <div class="row-accent-bar"></div>
 
-    <div class="host-avatar" :style="avatarStyle">
-      {{ initial }}
+    <div ref="avatarEl" class="host-avatar" :style="avatarStyle" @click.stop="openPicker">
+      {{ displayGlyph }}
+      <span class="avatar-edit" title="Customize color &amp; icon">
+        <svg viewBox="0 0 10 10" width="7" height="7" fill="none">
+          <path d="M1 7.5V9h1.5l4.4-4.4L5.4 3.1 1 7.5zM8.4 2.6a.7.7 0 000-1L7.6.8a.7.7 0 00-1 0L5.9 1.5l1.8 1.8.7-.7z" fill="currentColor"/>
+        </svg>
+      </span>
     </div>
+
+    <AvatarPicker
+      v-model="pickerOpen"
+      :anchor="anchorRect"
+      :color="pref.color"
+      :icon="pref.icon"
+      @set-color="c => setHostAppearance(host.host, { color: c })"
+      @set-icon="i => setHostAppearance(host.host, { icon: i })"
+    />
 
     <div class="row-body">
       <div class="row-top">
@@ -46,11 +60,16 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { roleTag } from '../composables/useHosts.js'
+import { useHostPrefs } from '../composables/useHostPrefs.js'
+import AvatarPicker from './AvatarPicker.vue'
 
 const props = defineProps({ host: Object })
 defineEmits(['connect', 'config', 'transfer'])
+
+const { prefFor, setHostAppearance } = useHostPrefs()
+const pref = computed(() => prefFor(props.host.host))
 
 const tag = computed(() => roleTag(props.host.host))
 const port = computed(() => props.host.port && props.host.port !== '22' ? props.host.port : null)
@@ -60,24 +79,48 @@ const proxyLabel = computed(() => {
 })
 
 const initial = computed(() => (props.host.host?.[0] ?? '?').toUpperCase())
+const displayGlyph = computed(() => pref.value.icon || initial.value)
 
-function hashColor(str) {
+function hashHue(str) {
   let h = 0
   for (const c of str) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff
-  const hue = Math.abs(h) % 360
-  return { hue, color: `hsl(${hue},55%,58%)` }
+  return Math.abs(h) % 360
+}
+
+// Extract just the hue from a #hex preset so custom colors render with the
+// same three-tone treatment (bg/border/fg) as the auto hash-derived ones.
+function hexToHue(hex) {
+  const n = parseInt(hex.slice(1), 16)
+  const r = (n >> 16) / 255, g = ((n >> 8) & 0xff) / 255, b = (n & 0xff) / 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min
+  if (d === 0) return 0
+  let h
+  if (max === r) h = ((g - b) / d) % 6
+  else if (max === g) h = (b - r) / d + 2
+  else h = (r - g) / d + 4
+  h *= 60
+  return h < 0 ? h + 360 : h
 }
 
 const avatarStyle = computed(() => {
-  const { hue, color } = hashColor(props.host.host)
+  const hue = pref.value.color ? hexToHue(pref.value.color) : hashHue(props.host.host)
   return {
-    '--av-hue': hue,
-    '--av-color': color,
+    '--av-color': `hsl(${hue},55%,58%)`,
     background: `hsl(${hue},50%,18%)`,
     borderColor: `hsl(${hue},45%,30%)`,
-    color,
+    color: `hsl(${hue},55%,58%)`,
   }
 })
+
+// ── Color/icon picker popover ───────────────────────────────────────
+const avatarEl = ref(null)
+const pickerOpen = ref(false)
+const anchorRect = ref(null)
+
+function openPicker() {
+  anchorRect.value = avatarEl.value.getBoundingClientRect()
+  pickerOpen.value = true
+}
 </script>
 
 <style scoped>
@@ -130,10 +173,37 @@ const avatarStyle = computed(() => {
   font-weight: 700;
   font-family: -apple-system, system-ui, sans-serif;
   letter-spacing: 0;
+  position: relative;
   transition: filter var(--transition-fast);
 }
 .host-row:hover .host-avatar {
   filter: brightness(1.15);
+}
+
+.avatar-edit {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 13px;
+  height: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  color: var(--text-dim);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity var(--transition-fast), transform var(--transition-fast), background var(--transition-fast);
+}
+.host-row:hover .avatar-edit {
+  opacity: 1;
+  transform: scale(1);
+}
+.avatar-edit:hover {
+  background: var(--accent-20);
+  color: var(--accent-l);
 }
 
 .row-body {
