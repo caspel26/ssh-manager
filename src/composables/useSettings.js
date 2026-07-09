@@ -113,7 +113,9 @@ export const DEFAULTS = {
     shell: '',
   },
   appearance: {
+    theme: 'dark',            // 'dark' | 'light'
     accentColor: '#7c6af7',
+    uiDensity: 'comfortable', // 'comfortable' | 'compact'
     terminalTheme: 'default',
     terminalFontSize: 13,
     terminalFontFamily: 'SF Mono',
@@ -139,11 +141,17 @@ function deepMerge(base, patch) {
 
 export const ACCENT_PRESETS = [
   { label: 'Purple',  value: '#7c6af7' },
+  { label: 'Indigo',  value: '#6366f1' },
   { label: 'Blue',    value: '#60a5fa' },
+  { label: 'Sky',     value: '#38bdf8' },
   { label: 'Teal',    value: '#2dd4bf' },
+  { label: 'Emerald', value: '#34d399' },
   { label: 'Green',   value: '#4ade80' },
-  { label: 'Rose',    value: '#f472b6' },
+  { label: 'Lime',    value: '#a3e635' },
+  { label: 'Amber',   value: '#fbbf24' },
   { label: 'Orange',  value: '#fb923c' },
+  { label: 'Rose',    value: '#fb7185' },
+  { label: 'Pink',    value: '#f472b6' },
 ]
 
 export const FONT_FAMILIES = [
@@ -158,11 +166,34 @@ const settings = ref(deepMerge(DEFAULTS, {}))
 
 export function applyAppearance(appearance) {
   const el = document.documentElement
+  // Theme (dark/light) + density drive token sets defined in style.css
+  el.setAttribute('data-theme', appearance.theme ?? DEFAULTS.appearance.theme)
+  el.setAttribute('data-density', appearance.uiDensity ?? DEFAULTS.appearance.uiDensity)
+
   const hex = appearance.accentColor ?? DEFAULTS.appearance.accentColor
-  el.style.setProperty('--accent', hex)
-  el.style.setProperty('--accent-l', lighten(hex, 18))
-  el.style.setProperty('--grad-btn', hex)
+  el.style.setProperty('--accent',    hex)
+  el.style.setProperty('--accent-l',  lighten(hex, 18))
+  el.style.setProperty('--accent-d',  darken(hex, 20))
+  el.style.setProperty('--accent-contrast', bestContrast(hex))
+  el.style.setProperty('--grad-btn',  hex)
+  el.style.setProperty('--grad-accent', `linear-gradient(135deg, ${hex} 0%, ${lighten(hex, 12)} 100%)`)
   el.style.setProperty('--grad-subtle', hexToRgba(hex, 0.11))
+  // alpha helpers so components don't need to hardcode the hue
+  el.style.setProperty('--accent-08',  hexToRgba(hex, 0.08))
+  el.style.setProperty('--accent-12',  hexToRgba(hex, 0.12))
+  el.style.setProperty('--accent-20',  hexToRgba(hex, 0.20))
+  el.style.setProperty('--accent-28',  hexToRgba(hex, 0.28))
+  el.style.setProperty('--accent-35',  hexToRgba(hex, 0.35))
+  el.style.setProperty('--accent-55',  hexToRgba(hex, 0.55))
+}
+
+// Pick black/white text for best contrast on the given accent (WCAG luminance)
+function bestContrast(hex) {
+  const n = parseInt(hex.slice(1), 16)
+  const r = (n >> 16) / 255, g = ((n >> 8) & 0xff) / 255, b = (n & 0xff) / 255
+  const lin = c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+  const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+  return L > 0.45 ? '#0d0d18' : '#ffffff'
 }
 
 function lighten(hex, amount) {
@@ -170,6 +201,14 @@ function lighten(hex, amount) {
   const r = Math.min(255, (n >> 16) + amount)
   const g = Math.min(255, ((n >> 8) & 0xff) + amount)
   const b = Math.min(255, (n & 0xff) + amount)
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
+}
+
+function darken(hex, amount) {
+  const n = parseInt(hex.slice(1), 16)
+  const r = Math.max(0, (n >> 16) - amount)
+  const g = Math.max(0, ((n >> 8) & 0xff) - amount)
+  const b = Math.max(0, (n & 0xff) - amount)
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
 }
 
@@ -195,5 +234,12 @@ export function useSettings() {
     } catch { /* ignore */ }
   }
 
-  return { settings, load, save }
+  // Flip theme instantly and persist (used by the header toggle)
+  async function toggleTheme() {
+    settings.value.appearance.theme = settings.value.appearance.theme === 'light' ? 'dark' : 'light'
+    applyAppearance(settings.value.appearance)
+    await save()
+  }
+
+  return { settings, load, save, toggleTheme, applyAppearance }
 }

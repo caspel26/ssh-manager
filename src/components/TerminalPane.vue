@@ -179,7 +179,7 @@ onUnmounted(() => { for (const id of Object.keys(terms)) destroyTerminal(id) })
 .tabs-bar {
   display: flex;
   align-items: center;
-  height: 44px;
+  height: 48px;
   flex-shrink: 0;
   background: var(--bg2);
   border-bottom: 1px solid var(--border);

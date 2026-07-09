@@ -1,40 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#1a1830"/>
-      <stop offset="100%" stop-color="#0f0e1c"/>
+    <linearGradient id="bg" x1="0" y1="112" x2="0" y2="912" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2c2758"/>
+      <stop offset="52%" stop-color="#1a1836"/>
+      <stop offset="100%" stop-color="#100f20"/>
     </linearGradient>
-    <linearGradient id="accent" x1="200" y1="200" x2="824" y2="824" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#7c6af7"/>
+    <linearGradient id="accent" x1="330" y1="360" x2="720" y2="680" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#9585ff"/>
       <stop offset="100%" stop-color="#4ecdc4"/>
     </linearGradient>
-    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
-      <stop offset="0%" stop-color="#7c6af7" stop-opacity="0.18"/>
-      <stop offset="100%" stop-color="#4ecdc4" stop-opacity="0.06"/>
+    <radialGradient id="glow" cx="50%" cy="44%" r="52%">
+      <stop offset="0%" stop-color="#7c6af7" stop-opacity="0.42"/>
+      <stop offset="100%" stop-color="#7c6af7" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sheen" x1="0" y1="112" x2="0" y2="470" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
   </defs>
 
-  <!-- Background -->
-  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <!-- squircle background -->
+  <rect x="112" y="112" width="800" height="800" rx="188" fill="url(#bg)"/>
+  <!-- inner accent glow -->
+  <rect x="112" y="112" width="800" height="800" rx="188" fill="url(#glow)"/>
+  <!-- top sheen for depth -->
+  <rect x="112" y="112" width="800" height="800" rx="188" fill="url(#sheen)"/>
+  <!-- hairline edge -->
+  <rect x="113" y="113" width="798" height="798" rx="187" fill="none" stroke="#ffffff" stroke-opacity="0.09" stroke-width="2"/>
 
-  <!-- Subtle inner glow panel -->
-  <rect x="112" y="112" width="800" height="800" rx="120" fill="url(#glow)"/>
-
-  <!-- Terminal window frame -->
-  <rect x="160" y="280" width="704" height="464" rx="48" fill="none" stroke="url(#accent)" stroke-width="36"/>
-
-  <!-- Traffic light dots (top-left of terminal) -->
-  <circle cx="268" cy="350" r="22" fill="#ff5f57" opacity="0.85"/>
-  <circle cx="344" cy="350" r="22" fill="#febc2e" opacity="0.85"/>
-  <circle cx="420" cy="350" r="22" fill="#28c840" opacity="0.85"/>
-
-  <!-- Chevron prompt > -->
-  <path d="M220 540 L370 640 L220 740" fill="none" stroke="url(#accent)" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- Cursor line _ -->
-  <rect x="420" y="700" width="220" height="44" rx="22" fill="url(#accent)" opacity="0.9"/>
-
-  <!-- SSH label text approximated as two lines -->
-  <rect x="420" y="540" width="340" height="36" rx="18" fill="url(#accent)" opacity="0.35"/>
-  <rect x="420" y="596" width="240" height="36" rx="18" fill="url(#accent)" opacity="0.2"/>
+  <!-- prompt chevron > -->
+  <path d="M356 396 L520 512 L356 628" fill="none" stroke="url(#accent)" stroke-width="64"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- cursor underscore _ -->
+  <rect x="566" y="600" width="150" height="54" rx="27" fill="url(#accent)"/>
 </svg>

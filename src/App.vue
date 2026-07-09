@@ -3,31 +3,30 @@
 
     <div class="titlebar">
       <div class="tl-space"></div>
-      <div class="tl-center">
-        <div class="tl-logo">
-          <svg viewBox="0 0 18 18" width="15" height="15" fill="none">
-            <rect x="1" y="4" width="16" height="11" rx="2" stroke="url(#g)" stroke-width="1.4"/>
-            <path d="M5 9l3 2.5L5 14" stroke="url(#g)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M10 13h4" stroke="url(#g)" stroke-width="1.4" stroke-linecap="round"/>
-            <defs>
-              <linearGradient id="g" x1="1" y1="4" x2="17" y2="15" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#7c6af7"/>
-                <stop offset="1" stop-color="#4ecdc4"/>
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-        <span class="tl-name">SSH Manager</span>
-      </div>
       <div class="tl-right">
-        <div class="host-chip">
+        <div class="host-chip" :class="{ live: activeCount > 0 }" :title="`${hosts.length} configured hosts${activeCount ? ` · ${activeCount} active session${activeCount === 1 ? '' : 's'}` : ''}`">
           <span class="chip-dot"></span>
-          {{ hosts.length }} hosts
+          <span class="chip-count">{{ hosts.length }}</span>
+          <span class="chip-label">{{ hosts.length === 1 ? 'host' : 'hosts' }}</span>
+          <template v-if="activeCount > 0">
+            <span class="chip-sep">·</span>
+            <span class="chip-active">{{ activeCount }} active</span>
+          </template>
         </div>
-        <button class="btn-settings" title="Settings" @click="settingsOpen = true">
-          <svg viewBox="0 0 16 16" width="14" height="14" fill="none">
-            <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/>
-            <path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M3.4 12.6l.85-.85M11.75 4.25l.85-.85" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <button class="btn-icon" :title="isDark ? 'Switch to light theme' : 'Switch to dark theme'" @click="toggleTheme">
+          <svg v-if="isDark" viewBox="0 0 16 16" width="15" height="15" fill="none">
+            <path d="M13.5 9.2A5.2 5.2 0 016.8 2.5a5.5 5.5 0 100 11 5.5 5.5 0 006.7-4.3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+          </svg>
+          <svg v-else viewBox="0 0 16 16" width="15" height="15" fill="none">
+            <circle cx="8" cy="8" r="3.2" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3 3l1.1 1.1M11.9 11.9L13 13M3 13l1.1-1.1M11.9 4.1L13 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button class="btn-icon" title="Settings" @click="settingsOpen = true">
+          <svg viewBox="0 0 16 16" width="15" height="15" fill="none">
+            <path d="M2 4.5h5.2M10.8 4.5H14M2 11.5h3.2M8.8 11.5H14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <circle cx="9" cy="4.5" r="1.7" stroke="currentColor" stroke-width="1.4"/>
+            <circle cx="7" cy="11.5" r="1.7" stroke="currentColor" stroke-width="1.4"/>
           </svg>
         </button>
       </div>
@@ -49,11 +48,13 @@
     <HostFormModal v-model="addModalOpen" @added="onHostAdded" />
     <SettingsModal v-model="settingsOpen" />
     <TransferModal v-model="transferOpen" :host-name="transferHost" />
+
+    <span class="app-version">v{{ version }}</span>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import HostList from './components/HostList.vue'
 import TerminalPane from './components/TerminalPane.vue'
 import ConfigDrawer from './components/ConfigDrawer.vue'
@@ -66,10 +67,15 @@ import { useModals } from './composables/useModals.js'
 import { useSettings } from './composables/useSettings.js'
 
 const { hosts, load, reload } = useHosts()
-const { openSession } = useSessions()
+const { openSession, sessions } = useSessions()
 const { addModalOpen } = useModals()
-const { load: loadSettings } = useSettings()
+const { settings, load: loadSettings, toggleTheme } = useSettings()
 const settingsOpen = ref(false)
+const version = __APP_VERSION__
+
+const activeCount = computed(() => sessions.value.length)
+const isDark = computed(() => (settings.value.appearance.theme ?? 'dark') !== 'light')
+
 onMounted(() => { load(); loadSettings() })
 
 function connect(host) { openSession(host) }
@@ -104,18 +110,19 @@ function stopDrag() { dragging.value = false }
   height: 100vh;
   overflow: hidden;
   background: var(--bg);
+  position: relative;
 }
 .app.dragging { cursor: col-resize; }
 
 .titlebar {
   display: flex;
   align-items: center;
-  height: 48px;
+  height: 46px;
   flex-shrink: 0;
   -webkit-app-region: drag;
   background: var(--bg2);
   position: relative;
-  padding: 0 16px 0 0;
+  padding: 0 12px 0 0;
 }
 
 .titlebar::after {
@@ -123,64 +130,17 @@ function stopDrag() { dragging.value = false }
   position: absolute;
   bottom: 0; left: 0; right: 0;
   height: 1px;
-  background: var(--border);
+  background: linear-gradient(90deg, transparent, var(--border) 12%, var(--border) 88%, transparent);
 }
 
-.tl-space { width: 80px; flex-shrink: 0; }
-
-.tl-center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  -webkit-app-region: no-drag;
-}
-
-.tl-logo {
-  width: 30px;
-  height: 30px;
-  background: var(--grad-subtle);
-  border: 1px solid var(--border2);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tl-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-dim);
-  letter-spacing: 0.02em;
-}
+.tl-space { width: 74px; flex-shrink: 0; }
 
 .tl-right {
   margin-left: auto;
   -webkit-app-region: no-drag;
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.btn-settings {
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
-}
-.btn-settings:hover {
-  background: var(--surface2);
-  color: var(--text);
-  border-color: var(--border3);
+  gap: 6px;
 }
 
 .host-chip {
@@ -189,17 +149,88 @@ function stopDrag() { dragging.value = false }
   gap: 6px;
   font-size: 11px;
   color: var(--text-muted);
-  background: var(--surface);
+  background: transparent;
   padding: 4px 11px 4px 9px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--border2);
+  border: 1px solid var(--border);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
-
+.host-chip:hover {
+  border-color: var(--border2);
+  background: var(--overlay);
+}
+.chip-count {
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.chip-label { color: var(--text-muted); }
+.chip-sep { color: var(--text-muted); opacity: 0.5; }
+.chip-active {
+  color: var(--green);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
 .chip-dot {
+  position: relative;
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  background: var(--text-muted);
+  transition: background var(--transition);
+}
+.host-chip.live .chip-dot { background: var(--green); }
+.chip-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
   background: var(--green);
+  opacity: 0;
+}
+.host-chip.live .chip-dot::after {
+  animation: chip-pulse 2.4s ease-out infinite;
+}
+@keyframes chip-pulse {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  70%  { transform: scale(2.6); opacity: 0; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chip-dot::after { animation: none; }
+}
+
+.btn-icon {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+.btn-icon:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.btn-icon:active { transform: scale(0.9); }
+
+.app-version {
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  font-size: 10px;
+  font-family: 'SF Mono', ui-monospace, monospace;
+  color: var(--text-muted);
+  opacity: 0.5;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  z-index: 5;
+  -webkit-app-region: no-drag;
 }
 
 .body {
@@ -212,7 +243,7 @@ function stopDrag() { dragging.value = false }
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bg2);
+  background: linear-gradient(180deg, var(--bg2) 0%, color-mix(in srgb, var(--bg2) 96%, var(--accent)) 100%);
   overflow: hidden;
 }
 
@@ -228,7 +259,7 @@ function stopDrag() { dragging.value = false }
 .resize-handle:hover,
 .resize-handle:active {
   background: var(--accent);
-  box-shadow: 0 0 10px rgba(124,106,247,0.5);
+  box-shadow: 0 0 10px var(--accent-55);
   width: 2px;
 }
 

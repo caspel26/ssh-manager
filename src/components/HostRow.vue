@@ -3,6 +3,10 @@
 
     <div class="row-accent-bar"></div>
 
+    <div class="host-avatar" :style="avatarStyle">
+      {{ initial }}
+    </div>
+
     <div class="row-body">
       <div class="row-top">
         <span class="row-name">{{ host.host }}</span>
@@ -15,27 +19,25 @@
         </template>
         <span v-if="host.user" class="meta-user">{{ host.user }}</span>
         <span v-if="port" class="meta-port">:{{ port }}</span>
-        <span v-if="proxyLabel" class="meta-proxy">{{ proxyLabel }}</span>
+        <span v-if="proxyLabel" class="meta-proxy">via proxy</span>
       </div>
     </div>
 
     <div class="row-actions">
-      <button class="btn-cfg" title="View / edit SSH config" @click.stop="$emit('config', host.host)">
+      <button class="btn-cfg" title="Edit SSH config" @click.stop="$emit('config', host.host)">
         <svg viewBox="0 0 14 14" width="12" height="12" fill="none">
-          <circle cx="7" cy="7" r="1.8" stroke="currentColor" stroke-width="1.3"/>
-          <path d="M7 1.5V3M7 11v1.5M1.5 7H3M11 7h1.5M3.4 3.4l1.1 1.1M9.5 9.5l1.1 1.1M3.4 10.6l1.1-1.1M9.5 4.5l1.1-1.1"
-            stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <path d="M2 10.5V12h1.5l5-5L7 5.5l-5 5zM11.7 3.8a.996.996 0 000-1.41l-1.09-1.09a.996.996 0 00-1.41 0L8.15 2.35 10.65 4.85l1.05-1.05z" fill="currentColor" opacity=".85"/>
         </svg>
       </button>
-      <button class="btn-cfg" title="Transfer files (scp / rsync)" @click.stop="$emit('transfer', host.host)">
+      <button class="btn-cfg" title="Transfer files" @click.stop="$emit('transfer', host.host)">
         <svg viewBox="0 0 14 14" width="12" height="12" fill="none">
           <path d="M7 1.5v11M4 9.5l3 3 3-3M4 4.5l3-3 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
       <button class="btn-connect" @click.stop="$emit('connect', host.host)">
         Connect
-        <svg viewBox="0 0 12 12" width="10" height="10" fill="none">
-          <path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <svg viewBox="0 0 12 12" width="9" height="9" fill="none">
+          <path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
     </div>
@@ -54,9 +56,27 @@ const tag = computed(() => roleTag(props.host.host))
 const port = computed(() => props.host.port && props.host.port !== '22' ? props.host.port : null)
 const proxyLabel = computed(() => {
   const h = props.host
-  if (h.proxyjump) return `via ${h.proxyjump}`
-  if (h.proxycommand) return 'via proxy'
-  return null
+  return h.proxyjump || h.proxycommand || null
+})
+
+const initial = computed(() => (props.host.host?.[0] ?? '?').toUpperCase())
+
+function hashColor(str) {
+  let h = 0
+  for (const c of str) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff
+  const hue = Math.abs(h) % 360
+  return { hue, color: `hsl(${hue},55%,58%)` }
+}
+
+const avatarStyle = computed(() => {
+  const { hue, color } = hashColor(props.host.host)
+  return {
+    '--av-hue': hue,
+    '--av-color': color,
+    background: `hsl(${hue},50%,18%)`,
+    borderColor: `hsl(${hue},45%,30%)`,
+    color,
+  }
 })
 </script>
 
@@ -64,28 +84,31 @@ const proxyLabel = computed(() => {
 .host-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px 8px 14px;
+  gap: 9px;
+  padding: var(--row-pad-y, 7px) 10px var(--row-pad-y, 7px) 12px;
   cursor: pointer;
   position: relative;
   transition: background var(--transition-fast);
+  border-radius: 6px;
+  margin: 0 6px;
 }
 .host-row:hover {
-  background: color-mix(in srgb, var(--accent) 7%, var(--bg3));
+  background: var(--hover);
 }
 
 .row-accent-bar {
   position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 2px;
-  border-radius: 2px;
+  left: -6px;
+  top: 8px;
+  bottom: 8px;
+  width: 2.5px;
+  border-radius: 0 2px 2px 0;
   background: transparent;
   transition: background var(--transition), box-shadow var(--transition);
 }
 .host-row:hover .row-accent-bar {
-  background: var(--accent);
+  background: var(--av-color, var(--accent));
+  box-shadow: 0 0 8px var(--av-color, var(--accent));
 }
 
 .host-row:hover .row-actions {
@@ -94,12 +117,31 @@ const proxyLabel = computed(() => {
   transform: translateX(0);
 }
 
+.host-avatar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: -apple-system, system-ui, sans-serif;
+  letter-spacing: 0;
+  transition: filter var(--transition-fast);
+}
+.host-row:hover .host-avatar {
+  filter: brightness(1.15);
+}
+
 .row-body {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .row-top {
@@ -110,13 +152,14 @@ const proxyLabel = computed(() => {
 }
 
 .row-name {
-  font-size: 12px;
-  font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12.5px;
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   font-weight: 500;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
 .role-badge {
@@ -135,73 +178,75 @@ const proxyLabel = computed(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
-  font-family: 'SF Mono', monospace;
+  font-size: 10.5px;
+  font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
 }
-.meta-host  { color: rgba(78,205,196,0.75); }
+.meta-host  { color: rgba(78,205,196,0.8); }
 .meta-user  { color: var(--text-muted); }
 .meta-port  { color: var(--text-muted); }
-.meta-dot   { opacity: 0.28; }
+.meta-dot   { opacity: 0.25; }
 .meta-proxy {
-  color: rgba(251,146,60,0.75);
-  font-size: 9px;
+  color: rgba(251,146,60,0.7);
+  font-size: 9.5px;
   font-style: italic;
 }
 
 .row-actions {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   opacity: 0;
   pointer-events: none;
-  transform: translateX(6px);
+  transform: translateX(4px);
   transition: opacity var(--transition), transform var(--transition);
   flex-shrink: 0;
 }
 
 .btn-cfg {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface);
+  background: var(--overlay-strong);
   border: 1px solid var(--border2);
   border-radius: var(--radius);
-  color: var(--text-dim);
+  color: var(--text-muted);
   cursor: pointer;
   flex-shrink: 0;
   transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 .btn-cfg:hover {
-  background: color-mix(in srgb, var(--cyan) 12%, transparent);
+  background: rgba(78,205,196,0.1);
   color: var(--cyan);
-  border-color: rgba(78,205,196,0.35);
+  border-color: rgba(78,205,196,0.3);
 }
 
 .btn-connect {
   display: flex;
   align-items: center;
   gap: 5px;
-  height: 28px;
-  padding: 0 13px;
-  background: var(--grad-btn);
+  height: 26px;
+  padding: 0 12px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-d) 100%);
   border: none;
   border-radius: var(--radius-pill);
-  color: #fff;
+  color: var(--accent-contrast);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   letter-spacing: 0.01em;
-  transition: opacity var(--transition);
+  box-shadow: 0 2px 10px var(--accent-35);
+  transition: box-shadow var(--transition-fast), filter var(--transition-fast);
 }
 .btn-connect:hover {
-  opacity: 0.82;
+  filter: brightness(1.12);
+  box-shadow: 0 3px 16px var(--accent-55);
 }
 </style>

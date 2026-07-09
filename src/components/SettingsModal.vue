@@ -30,6 +30,8 @@
 
               <!-- Content -->
               <div class="content">
+              <Transition name="tab-fade" mode="out-in">
+              <div :key="activeTab" class="tab-pane">
 
                 <!-- ── General ─────────────────────────── -->
                 <template v-if="activeTab === 'general'">
@@ -51,6 +53,20 @@
                 <!-- ── Appearance ──────────────────────── -->
                 <template v-if="activeTab === 'appearance'">
                   <div class="section">
+                    <div class="section-title">Theme</div>
+                    <div class="theme-toggle">
+                      <button
+                        v-for="t in ['dark', 'light']" :key="t"
+                        class="theme-opt" :class="{ active: draft.appearance.theme === t }"
+                        @click="draft.appearance.theme = t"
+                      >
+                        <span class="theme-swatch" :class="`sw-${t}`"></span>
+                        {{ t === 'dark' ? 'Dark' : 'Light' }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="section">
                     <div class="section-title">Accent color</div>
                     <div class="color-presets">
                       <button
@@ -61,6 +77,40 @@
                         :title="p.label"
                         @click="draft.appearance.accentColor = p.value"
                       ></button>
+                    </div>
+                    <div class="field field--row custom-accent">
+                      <label class="field-label">Custom</label>
+                      <div class="hex-input">
+                        <input
+                          type="color"
+                          class="hex-picker"
+                          :value="draft.appearance.accentColor"
+                          @input="draft.appearance.accentColor = $event.target.value"
+                        />
+                        <input
+                          class="field-input hex-text"
+                          :value="draft.appearance.accentColor"
+                          spellcheck="false"
+                          maxlength="7"
+                          @input="onHexInput($event.target.value)"
+                        />
+                      </div>
+                    </div>
+                    <div class="accent-demo">
+                      <button class="demo-btn">Connect</button>
+                      <span class="demo-badge">accent</span>
+                      <span class="demo-link">a link</span>
+                    </div>
+                  </div>
+
+                  <div class="section">
+                    <div class="section-title">Interface density</div>
+                    <div class="field field--row">
+                      <label class="field-label">Row spacing</label>
+                      <div class="pill-group pill-group--sm">
+                        <button class="pill pill--xs" :class="{ active: draft.appearance.uiDensity === 'comfortable' }" @click="draft.appearance.uiDensity = 'comfortable'">Comfortable</button>
+                        <button class="pill pill--xs" :class="{ active: draft.appearance.uiDensity === 'compact' }" @click="draft.appearance.uiDensity = 'compact'">Compact</button>
+                      </div>
                     </div>
                   </div>
                 </template>
@@ -163,6 +213,8 @@
                 </template>
 
               </div>
+              </Transition>
+              </div>
             </div>
 
             <div class="modal-footer">
@@ -179,12 +231,18 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { useSettings, ACCENT_PRESETS, FONT_FAMILIES, TERMINAL_THEMES, DEFAULTS } from '../composables/useSettings.js'
+import { useSettings, applyAppearance, ACCENT_PRESETS, FONT_FAMILIES, TERMINAL_THEMES, DEFAULTS } from '../composables/useSettings.js'
 
 const props = defineProps({ modelValue: Boolean })
 const emit = defineEmits(['update:modelValue'])
 
 const { settings, save } = useSettings()
+
+function onHexInput(val) {
+  let v = val.trim()
+  if (v && !v.startsWith('#')) v = '#' + v
+  if (/^#[0-9a-fA-F]{6}$/.test(v)) draft.value.appearance.accentColor = v
+}
 
 const cursorStyles = [
   { label: 'Bar',       value: 'bar' },
@@ -217,6 +275,11 @@ watch(() => props.modelValue, open => {
   }
 })
 
+// Live-preview appearance (theme / accent / density) as the user edits the draft
+watch(() => draft.value?.appearance, a => {
+  if (a && props.modelValue) applyAppearance(a)
+}, { deep: true })
+
 function previewColors(theme) {
   const c = theme.colors
   return [c.red, c.green, c.yellow, c.blue, c.magenta, c.cyan, c.white, c.brightBlack]
@@ -228,7 +291,11 @@ async function saveAndClose() {
   emit('update:modelValue', false)
 }
 
-function close() { emit('update:modelValue', false) }
+function close() {
+  // discard live preview — restore the persisted appearance
+  applyAppearance(settings.value.appearance)
+  emit('update:modelValue', false)
+}
 </script>
 
 <style scoped>
@@ -325,7 +392,7 @@ function close() { emit('update:modelValue', false) }
   text-align: left;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
-.nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text-dim); }
+.nav-item:hover { background: var(--overlay); color: var(--text-dim); }
 .nav-item.active {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent-l);
@@ -395,9 +462,9 @@ function close() { emit('update:modelValue', false) }
 }
 .field-input::placeholder { color: var(--text-muted); }
 .field-input:focus {
-  border-color: rgba(124,106,247,0.55);
+  border-color: var(--accent-55);
   background: color-mix(in srgb, var(--accent) 5%, var(--bg4));
-  box-shadow: 0 0 0 3px rgba(124,106,247,0.1);
+  box-shadow: 0 0 0 3px var(--accent-08);
 }
 
 .field-hint {
@@ -431,10 +498,99 @@ function close() { emit('update:modelValue', false) }
 }
 .color-swatch:hover { transform: scale(1.12); }
 .color-swatch.active {
-  border-color: #fff;
+  border-color: var(--text);
   box-shadow: 0 0 0 3px var(--swatch);
   transform: scale(1.08);
 }
+
+/* ── Theme toggle ───────────────────────── */
+.theme-toggle {
+  display: flex;
+  gap: 8px;
+}
+.theme-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+.theme-opt:hover { background: var(--surface2); }
+.theme-opt.active {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--accent-12);
+}
+.theme-swatch {
+  width: 16px; height: 16px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+}
+.theme-swatch.sw-dark  { background: linear-gradient(135deg, #12121f 50%, #22223a 50%); }
+.theme-swatch.sw-light { background: linear-gradient(135deg, #ffffff 50%, #e3e6f0 50%); }
+
+/* ── Custom accent ──────────────────────── */
+.custom-accent { margin-top: 4px; }
+.hex-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hex-picker {
+  width: 30px; height: 30px;
+  padding: 0;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  background: none;
+  cursor: pointer;
+}
+.hex-picker::-webkit-color-swatch-wrapper { padding: 2px; }
+.hex-picker::-webkit-color-swatch { border: none; border-radius: 4px; }
+.hex-text {
+  width: 96px;
+  text-transform: uppercase;
+}
+
+.accent-demo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 12px;
+  background: var(--bg4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.demo-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-d) 100%);
+  color: var(--accent-contrast);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: default;
+  box-shadow: 0 2px 10px var(--accent-35);
+}
+.demo-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  color: var(--accent-l);
+  background: var(--accent-12);
+  border: 1px solid var(--accent-28);
+}
+.demo-link { color: var(--accent-l); font-size: 12px; font-weight: 500; }
 
 /* ── Pills ──────────────────────────────── */
 .pill-group {
@@ -549,7 +705,7 @@ function close() { emit('update:modelValue', false) }
 .btn-cancel:hover { background: var(--surface2); border-color: var(--border3); }
 
 .btn-save {
-  background: var(--grad-btn);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-d) 100%);
   color: #fff;
   border: none;
   border-radius: var(--radius-pill);
@@ -557,9 +713,10 @@ function close() { emit('update:modelValue', false) }
   font-weight: 600;
   padding: 7px 18px;
   cursor: pointer;
-  transition: opacity var(--transition);
+  box-shadow: 0 2px 10px var(--accent-35);
+  transition: filter var(--transition), box-shadow var(--transition);
 }
-.btn-save:hover { opacity: 0.82; }
+.btn-save:hover { filter: brightness(1.1); box-shadow: 0 3px 16px var(--accent-55); }
 
 /* ── Theme grid ─────────────────────────── */
 .theme-grid {
@@ -620,6 +777,23 @@ function close() { emit('update:modelValue', false) }
 .pill--xs { padding: 4px 10px; font-size: 10.5px; }
 
 /* ── Transitions ─────────────────────────── */
+.tab-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Settings tab crossfade */
+.tab-fade-enter-active, .tab-fade-leave-active {
+  transition: opacity 0.14s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tab-fade-enter-from { opacity: 0; transform: translateY(6px); }
+.tab-fade-leave-to   { opacity: 0; transform: translateY(-6px); }
+@media (prefers-reduced-motion: reduce) {
+  .tab-fade-enter-active, .tab-fade-leave-active { transition: opacity 0.1s ease; }
+  .tab-fade-enter-from, .tab-fade-leave-to { transform: none; }
+}
+
 .overlay-enter-active, .overlay-leave-active { transition: opacity 0.2s; }
 .overlay-enter-from, .overlay-leave-to { opacity: 0; }
 

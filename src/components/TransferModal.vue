@@ -53,6 +53,7 @@
               </div>
 
               <!-- rsync options -->
+              <Transition name="expand">
               <div v-if="method === 'rsync'" class="rsync-section">
                 <div class="presets">
                   <span class="field-label">Preset</span>
@@ -69,6 +70,7 @@
                   <span class="field-hint">Tip: trailing <code>/</code> on local path syncs the <em>contents</em>; without it, rsync copies the folder itself.</span>
                 </div>
               </div>
+              </Transition>
 
               <!-- Paths -->
               <div class="paths">
@@ -522,4 +524,16 @@ function maybeClose() {
 .modal-enter-active { transition: opacity 0.2s, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
 .modal-leave-active { transition: opacity 0.15s, transform 0.15s ease-in; }
 .modal-enter-from, .modal-leave-to { opacity: 0; transform: scale(0.96) translateY(8px); }
+
+/* rsync options expand/collapse when switching scp ⇆ rsync */
+.expand-enter-active, .expand-leave-active {
+  transition: opacity 0.18s ease, max-height 0.24s cubic-bezier(0.22, 1, 0.36, 1), transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+.expand-enter-from, .expand-leave-to { opacity: 0; max-height: 0; transform: translateY(-6px); }
+.expand-enter-to, .expand-leave-from { opacity: 1; max-height: 220px; }
+@media (prefers-reduced-motion: reduce) {
+  .expand-enter-active, .expand-leave-active { transition: opacity 0.12s ease; }
+  .expand-enter-from, .expand-leave-to { max-height: none; transform: none; }
+}
 </style>

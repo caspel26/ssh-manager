@@ -107,7 +107,8 @@ function toggleCat(cat) {
 }
 
 .sidebar-header {
-  padding: 10px;
+  height: 48px;
+  padding: 0 10px 0 12px;
   flex-shrink: 0;
   background: var(--bg2);
   border-bottom: 1px solid var(--border);
@@ -123,17 +124,17 @@ function toggleCat(cat) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface);
-  border: 1px solid var(--border2);
+  background: var(--accent-12);
+  border: 1px solid var(--accent-28);
   border-radius: var(--radius);
-  color: var(--text-dim);
+  color: var(--accent-l);
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
 }
 .btn-add:hover {
-  background: var(--surface2);
-  color: var(--text);
-  border-color: var(--border3);
+  background: var(--accent-20);
+  box-shadow: 0 0 12px var(--accent-28);
+  color: #fff;
 }
 
 .search-wrap {
@@ -169,9 +170,9 @@ function toggleCat(cat) {
   color: var(--text-muted);
 }
 .search-input:focus {
-  border-color: rgba(124,106,247,0.55);
+  border-color: var(--accent-55);
   background: color-mix(in srgb, var(--accent) 6%, var(--bg4));
-  box-shadow: 0 0 0 3px rgba(124,106,247,0.12);
+  box-shadow: 0 0 0 3px var(--accent-12);
 }
 
 .search-clear {
@@ -199,11 +200,11 @@ function toggleCat(cat) {
 .list-scroll {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 24px;
+  padding: 6px 0 24px;
 }
 
 .section-label {
-  padding: 10px 14px 4px;
+  padding: 8px 14px 4px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -212,7 +213,7 @@ function toggleCat(cat) {
 }
 
 .group {
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .cat-row {
@@ -220,21 +221,20 @@ function toggleCat(cat) {
   align-items: center;
   gap: 7px;
   width: 100%;
-  padding: 6px 12px;
+  padding: 5px 14px;
   background: none;
   border: none;
   cursor: pointer;
   color: var(--text-muted);
   font-size: 9.5px;
   font-weight: 700;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   text-align: left;
-  transition: color var(--transition-fast), background var(--transition-fast);
+  transition: color var(--transition-fast);
 }
 .cat-row:hover {
   color: var(--text-dim);
-  background: rgba(255,255,255,0.025);
 }
 
 .cat-arrow {
@@ -242,7 +242,7 @@ function toggleCat(cat) {
   color: inherit;
   transform: rotate(0deg);
   transition: transform 0.18s ease;
-  opacity: 0.5;
+  opacity: 0.45;
 }
 .cat-arrow.open {
   transform: rotate(90deg);
@@ -252,15 +252,20 @@ function toggleCat(cat) {
 
 .cat-count {
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-muted);
-  background: rgba(255,255,255,0.05);
+  background: var(--overlay-strong);
   padding: 0 6px;
-  height: 16px;
-  line-height: 16px;
+  height: 15px;
+  line-height: 15px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--border2);
+  border: 1px solid var(--border);
   letter-spacing: 0;
+}
+
+.cat-items {
+  padding-top: 2px;
+  padding-bottom: 4px;
 }
 
 .empty-state {

@@ -1,6 +1,6 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
+:root, :root[data-theme="dark"] {
   --bg:         #0d0d18;
   --bg2:        #12121f;
   --bg3:        #161626;
@@ -12,6 +12,12 @@
   --border2:    rgba(255,255,255,0.15);
   --border3:    rgba(255,255,255,0.24);
 
+  /* theme-aware overlays (used for hover/tint so they flip in light mode) */
+  --overlay:        rgba(255,255,255,0.04);
+  --overlay-strong: rgba(255,255,255,0.08);
+  --hover:          rgba(255,255,255,0.045);
+  --hover-strong:   rgba(255,255,255,0.09);
+
   --text:       #f0f0fa;
   --text-dim:   #b8b8d8;
   --text-muted: #9090b8;
@@ -19,6 +25,13 @@
   --accent:     #7c6af7;
   --accent-l:   #a090ff;
   --accent-d:   #5a4bd4;
+  --accent-contrast: #ffffff;
+  --accent-08:  rgba(124,106,247,0.08);
+  --accent-12:  rgba(124,106,247,0.12);
+  --accent-20:  rgba(124,106,247,0.20);
+  --accent-28:  rgba(124,106,247,0.28);
+  --accent-35:  rgba(124,106,247,0.35);
+  --accent-55:  rgba(124,106,247,0.55);
   --cyan:       #4ecdc4;
   --cyan-d:     #35a09a;
   --blue:       #60a5fa;
@@ -45,7 +58,51 @@
 
   --transition: 200ms ease;
   --transition-fast: 120ms ease;
+
+  /* density (host row vertical padding) */
+  --row-pad-y: 7px;
 }
+
+:root[data-theme="light"] {
+  --bg:         #f5f6fa;
+  --bg2:        #ffffff;
+  --bg3:        #eef0f6;
+  --bg4:        #e8eaf3;
+  --surface:    #ffffff;
+  --surface2:   #eef0f6;
+  --surface3:   #e3e6f0;
+  --border:     rgba(20,22,40,0.10);
+  --border2:    rgba(20,22,40,0.16);
+  --border3:    rgba(20,22,40,0.26);
+
+  --overlay:        rgba(20,22,50,0.04);
+  --overlay-strong: rgba(20,22,50,0.07);
+  --hover:          rgba(20,22,50,0.05);
+  --hover-strong:   rgba(20,22,50,0.09);
+
+  --text:       #16182a;
+  --text-dim:   #3f4260;
+  --text-muted: #6b6f8c;
+
+  /* semantic colors tuned for contrast on light backgrounds */
+  --cyan:       #0e9384;
+  --cyan-d:     #0b7267;
+  --blue:       #2563eb;
+  --green:      #059669;
+  --orange:     #ea580c;
+  --red:        #dc2626;
+  --pink:       #db2777;
+  --yellow:     #b45309;
+
+  --grad-title-bar: rgba(20,22,50,0.03);
+
+  --shadow-sm:  0 1px 3px rgba(30,35,80,0.10);
+  --shadow-md:  0 6px 24px rgba(30,35,80,0.14);
+  --shadow-lg:  0 18px 56px rgba(30,35,80,0.22);
+  --shadow-acc: 0 0 20px rgba(124,106,247,0.20);
+}
+
+:root[data-density="compact"] { --row-pad-y: 4px; }
 
 html, body, #app {
   width: 100%; height: 100%;
@@ -61,5 +118,6 @@ html, body, #app {
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border3); }
+:root[data-theme="light"] body { -webkit-font-smoothing: auto; }

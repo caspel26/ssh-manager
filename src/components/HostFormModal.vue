@@ -45,8 +45,9 @@
               </div>
             </div>
 
+            <Transition :name="modeTransition" mode="out-in">
             <!-- ── Form mode ───────────────────────────── -->
-            <div v-if="mode === 'form'" class="modal-body">
+            <div v-if="mode === 'form'" key="form" class="modal-body">
               <div v-if="error" class="error-banner">
                 <svg viewBox="0 0 16 16" width="13" height="13" fill="none">
                   <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/>
@@ -136,7 +137,7 @@
             </div>
 
             <!-- ── Raw mode ────────────────────────────── -->
-            <div v-else class="modal-body modal-body--raw">
+            <div v-else key="raw" class="modal-body modal-body--raw">
               <div v-if="error" class="error-banner">
                 <svg viewBox="0 0 16 16" width="13" height="13" fill="none">
                   <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/>
@@ -181,6 +182,7 @@
                 </select>
               </div>
             </div>
+            </Transition>
 
             <div class="modal-footer">
               <div class="footer-info-left">
@@ -215,6 +217,8 @@ const error = ref(null)
 const configFiles = ref([])
 const targetFile = ref('')
 const mode = ref('form')
+// Slide direction: form→raw slides left, raw→form slides right
+const modeTransition = ref('slide-left')
 
 let _idCounter = 0
 function newEntry() {
@@ -251,6 +255,7 @@ watch(() => props.modelValue, async open => {
 
 function switchMode(next) {
   if (next === mode.value) return
+  modeTransition.value = next === 'raw' ? 'slide-left' : 'slide-right'
   if (next === 'raw') {
     rawContent.value = entriesToRaw(entries.value)
   } else {
@@ -931,4 +936,21 @@ function close() { emit('update:modelValue', false) }
 .modal-enter-active { transition: opacity 0.2s, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
 .modal-leave-active { transition: opacity 0.15s, transform 0.15s ease-in; }
 .modal-enter-from, .modal-leave-to { opacity: 0; transform: scale(0.96) translateY(8px); }
+
+/* Form ⇆ Raw slide (direction set by which tab you click) */
+.slide-left-enter-active, .slide-left-leave-active,
+.slide-right-enter-active, .slide-right-leave-active {
+  transition: opacity 0.16s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.slide-left-enter-from  { opacity: 0; transform: translateX(26px); }
+.slide-left-leave-to    { opacity: 0; transform: translateX(-26px); }
+.slide-right-enter-from { opacity: 0; transform: translateX(-26px); }
+.slide-right-leave-to   { opacity: 0; transform: translateX(26px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-left-enter-active, .slide-left-leave-active,
+  .slide-right-enter-active, .slide-right-leave-active { transition: opacity 0.12s ease; }
+  .slide-left-enter-from, .slide-left-leave-to,
+  .slide-right-enter-from, .slide-right-leave-to { transform: none; }
+}
 </style>

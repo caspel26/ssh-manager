@@ -2,7 +2,7 @@
   "name": "ssh-manager",
   "private": true,
   "version": "1.0.0",
-  "main": "electron/main.cjs",
+  "main": "app/main.mjs",
   "scripts": {
     "build:renderer": "vite build",
     "build": "npm run build:renderer",
@@ -14,13 +14,24 @@
   "build": {
     "appId": "com.sshmanager.app",
     "productName": "SSH Manager",
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "dist/**/*",
-      "electron/**/*",
+      "app/**/*",
       "package.json"
     ],
     "mac": {
-      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
       "category": "public.app-category.developer-tools",
       "icon": "build/icon.icns"
     },
@@ -29,7 +40,14 @@
       "artifactName": "SSHManager-${version}-${arch}.dmg"
     },
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "build/icon.ico"
     },
     "nsis": {

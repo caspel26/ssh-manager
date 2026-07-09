@@ -1,27 +1,37 @@
-'use strict'
+// In packaged Electron app (no node_modules/electron), Electron's native ESM 
+// loader handles 'import from electron' as a builtin.
+// In dev mode (node_modules/electron exists), we get the npm package path string.
+// The app is packaged via electron-builder which excludes node_modules/electron.
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { join } from 'path'
+import { readFileSync, writeFileSync, existsSync, readdirSync } from 'fs'
+import { spawn, execSync } from 'child_process'
+import os from 'os'
+import pty from 'node-pty'
 
-// Bypass local node_modules/electron (which is just the binary path string)
-// by resolving from a directory that does not have node_modules/electron.
-// Electron's internal module registry handles 'electron' as a builtin.
-const Module = require('module')
-const _resolveFilename = Module._resolveFilename.bind(Module)
-Module._resolveFilename = function (request, ...args) {
-  if (request === 'electron') return request // pass through to Electron's builtin
-  return _resolveFilename(request, ...args)
+// GUI apps launched from Finder don't inherit the shell's SSH_AUTH_SOCK, so
+// ssh can't reach the agent and prompts for a password on every connection.
+// On macOS the agent socket lives in launchd; fall back to that when unset.
+function resolveAuthSock() {
+  if (process.env.SSH_AUTH_SOCK) return process.env.SSH_AUTH_SOCK
+  if (process.platform === 'darwin') {
+    try {
+      const sock = execSync('launchctl getenv SSH_AUTH_SOCK', { encoding: 'utf8' }).trim()
+      if (sock) return sock
+    } catch { /* no agent registered with launchd */ }
+  }
+  return ''
 }
-
-const { app, BrowserWindow, ipcMain, dialog } = require('electron')
-const { join } = require('path')
-const { readFileSync, writeFileSync, existsSync, readdirSync } = require('fs')
-const { spawn } = require('child_process')
-const os = require('os')
-const pty = require('node-pty')
+const SSH_AUTH_SOCK = resolveAuthSock()
 
 const isDev = process.env.NODE_ENV === 'development'
 let mainWindow
 
-// Allow node-pty to spawn processes from the main process
 app.commandLine.appendSwitch('no-sandbox')
+// Don't use the macOS Keychain ("Safe Storage") for Chromium's local encryption.
+// The app is ad-hoc signed, so each build looks like a new app and macOS would
+// re-prompt for the keychain password. We store prefs as plain JSON, no secrets.
+app.commandLine.appendSwitch('password-store', 'basic')
 
 function createWindow() {
   const ROOT = app.getAppPath()
@@ -31,15 +41,13 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     titleBarStyle: 'hiddenInset',
-    backgroundColor: '#0f0f17',
+    backgroundColor: '#0d0d18',
     webPreferences: {
-      preload: join(ROOT, 'electron/preload.cjs'),
+      preload: join(ROOT, 'app/preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
     },
-    vibrancy: 'under-window',
-    visualEffectState: 'active',
   })
 
   if (isDev) {
@@ -47,12 +55,14 @@ function createWindow() {
   } else {
     mainWindow.loadFile(join(ROOT, 'dist/index.html'))
   }
-
 }
 
 app.whenReady().then(createWindow)
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
-app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
+// On macOS `activate` can fire before the app is ready on first launch — guard against it.
+app.on('activate', () => {
+  if (app.isReady() && BrowserWindow.getAllWindows().length === 0) createWindow()
+})
 
 // ─── SSH Config helpers ───────────────────────────────────────────────────────
 
@@ -181,7 +191,6 @@ ipcMain.handle('ssh:addHost', (_, { filePath, block }) => {
 // ─── PTY sessions ─────────────────────────────────────────────────────────────
 
 const sessions = new Map()
-
 const isWin = process.platform === 'win32'
 
 ipcMain.handle('pty:create', (event, { id, host }) => {
@@ -198,7 +207,7 @@ ipcMain.handle('pty:create', (event, { id, host }) => {
     env: {
       ...process.env,
       TERM: 'xterm-256color',
-      ...(isWin ? {} : { SSH_AUTH_SOCK: process.env.SSH_AUTH_SOCK || '' }),
+      ...(!isWin && SSH_AUTH_SOCK ? { SSH_AUTH_SOCK } : {}),
     },
     useConpty: isWin,
   })
@@ -245,7 +254,7 @@ ipcMain.handle('transfer:start', (_, { id, host, direction, localPath, remotePat
   }
 
   const proc = spawn(cmd, args, {
-    env: { ...process.env, SSH_AUTH_SOCK: process.env.SSH_AUTH_SOCK || '' },
+    env: { ...process.env, ...(SSH_AUTH_SOCK ? { SSH_AUTH_SOCK } : {}) },
   })
   activeTransfers.set(id, proc)
 
