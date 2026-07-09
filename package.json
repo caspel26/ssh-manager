@@ -1,0 +1,59 @@
+{
+  "name": "ssh-manager",
+  "private": true,
+  "version": "1.0.0",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "build:renderer": "vite build",
+    "build": "npm run build:renderer",
+    "package": "npm run build && electron-builder",
+    "package:mac": "npm run build && electron-builder --mac",
+    "package:win": "npm run build && electron-builder --win",
+    "start": "npm run build && node_modules/.bin/electron ."
+  },
+  "build": {
+    "appId": "com.sshmanager.app",
+    "productName": "SSH Manager",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns"
+    },
+    "dmg": {
+      "title": "SSH Manager ${version}",
+      "artifactName": "SSHManager-${version}-${arch}.dmg"
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "SSHManager-${version}-Setup.exe"
+    },
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/node-pty/**/*"
+    ]
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/addon-web-links": "^0.12.0",
+    "node-pty": "^1.1.0",
+    "vue": "^3.5.34",
+    "xterm": "^5.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.6",
+    "esbuild": "^0.28.0",
+    "electron": "^42.2.0",
+    "electron-builder": "^26.8.1",
+    "vite": "^8.0.12"
+  }
+}
